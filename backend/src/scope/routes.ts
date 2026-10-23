@@ -2,6 +2,9 @@ import type { Request, Response } from "express";
 import { Router } from "express";
 import { getDatabase } from "../database.js";
 import type { FirebaseIdentity } from "../firebaseAuth.js";
+import { rateLimit } from "../middleware/rateLimit.js";
+import { aiConfigured } from "./aiClient.js";
+import { latestAnalysis, runProjectAnalysis, suggestChangeImpact } from "./aiService.js";
 import { verifyChain } from "./auditChain.js";
 import { allowedTransitions, canTransition, isChangeStatus, parseImpact, timestampFor } from "./changeWorkflow.js";
 import { toCsv } from "./csv.js";
@@ -39,6 +42,27 @@ function bodyOf(request: Request): Record<string, unknown> {
 /** Authenticated scope tools. Mounted at /api/scope behind requireFirebaseUser. */
 export function createScopeRouter(): Router {
   const router = Router();
+  const aiLimit = rateLimit({ name: "ai", windowMs: 60_000, max: 8 });
+
+  router.get("/projects/:projectId/ai/analysis", async (request, response) => {
+    const db = await getDatabase();
+    const projectId = param(request, "projectId");
+    await requireProjectAccess(db, identityOf(response), projectId);
+    response.json({ configured: aiConfigured(), latest: await latestAnalysis(db, projectId) });
+  });
+
+  router.post("/projects/:projectId/ai/analysis", aiLimit, async (request, response) => {
+    const db = await getDatabase();
+    const identity = identityOf(response);
+    const project = await requireProjectAccess(db, identity, param(request, "projectId"));
+    response.status(201).json(await runProjectAnalysis(db, identity, project));
+  });
+
+  router.post("/projects/:projectId/changes/:changeId/ai/impact", aiLimit, async (request, response) => {
+    const db = await getDatabase();
+    const project = await requireProjectAccess(db, identityOf(response), param(request, "projectId"));
+    response.json(await suggestChangeImpact(db, project, param(request, "changeId")));
+  });
 
   router.get("/projects/:projectId/baselines", async (request, response) => {
     const db = await getDatabase();

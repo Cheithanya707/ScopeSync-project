@@ -22,6 +22,7 @@ import { rateLimit } from "./middleware/rateLimit.js";
 import { captureJson, enforceChangeWorkflow, recordMutation } from "./scope/mutationHooks.js";
 import { createPublicScopeRouter } from "./scope/publicRoutes.js";
 import { createScopeRouter } from "./scope/routes.js";
+import { startDeadlineSweeper } from "./scope/deadlineAlerts.js";
 
 const app = express();
 const port = Number(process.env.PORT || 5000);
@@ -174,11 +175,13 @@ app.use(errorHandler);
 async function start(): Promise<void> {
   const db = await getDatabase();
   await ensureIndexes(db);
+  const stopSweeper = startDeadlineSweeper(getDatabase);
   const server = app.listen(port, "127.0.0.1", () => {
     console.info(`ScopeSync API listening on http://127.0.0.1:${port}`);
   });
 
   const shutdown = () => {
+    stopSweeper();
     server.close((error) => {
       void closeDatabase().then(() => {
         if (error) {

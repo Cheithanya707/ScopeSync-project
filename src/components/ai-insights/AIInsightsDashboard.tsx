@@ -21,6 +21,7 @@ import {
   getTeamHealth,
 } from "@/lib/utils/aiInsightUtils";
 import { getAIProjectInputs } from "@/services/ai/aiInsightService";
+import { ProjectAiAnalysisPanel } from "@/components/ai-insights/ProjectAiAnalysisPanel";
 import type { AIProjectInput, HealthStatus } from "@/types";
 
 const healthStyles: Record<HealthStatus, string> = {
@@ -72,21 +73,6 @@ function HealthRow({ label, status, detail }: { label: string; status: HealthSta
       </div>
       <HealthBadge status={status} />
     </div>
-  );
-}
-
-function AnalysisPanel() {
-  return (
-    <section aria-labelledby="ai-analysis-title" className="rounded-xl border border-border bg-white p-5 shadow-sm sm:p-6">
-      <div className="flex items-start gap-3">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-violet-50 text-violet-700"><Bot aria-hidden="true" className="size-5" /></span>
-        <div>
-          <h2 id="ai-analysis-title" className="font-semibold text-slate-950">AI-generated insights</h2>
-          <p className="mt-1 text-sm leading-6 text-muted-foreground">AI analysis is not connected yet. No external AI provider is called, and no AI-generated insight is being presented as real.</p>
-          <p className="mt-3 text-xs font-medium text-slate-500">Last analyzed: Not analyzed yet</p>
-        </div>
-      </div>
-    </section>
   );
 }
 
@@ -203,7 +189,7 @@ export function AIInsightsDashboard() {
             <MetricCard label="Deadline risks" value={signal.overdue.length + signal.dueSoon.length} detail={`${signal.overdue.length} overdue · ${signal.dueSoon.length} due within 7 days`} icon={Clock3} tone={signal.overdue.length ? "red" : "amber"} />
           </div>
 
-          <AnalysisPanel />
+          <ProjectAiAnalysisPanel projectId={effectiveProjectId === "all" ? null : effectiveProjectId} />
 
           <div className="grid gap-6 xl:grid-cols-2">
             <section aria-labelledby="health-breakdown-title" className="rounded-xl border border-border bg-white p-5 shadow-sm sm:p-6">

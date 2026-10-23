@@ -8,9 +8,10 @@ Status: restructure complete (`src/app`, `src/components`, `src/context`, `src/h
 - Phase 3 DONE: public `POST /api/public/shares/:token/changes/:changeId/decision`, new share permission `approveChanges`, Approve/Reject in client view. Share expiry/revoke already existed. Password-protected links NOT done.
 - Phase 4 DONE: hash-chained `auditLog` (`auditChain.ts`), every task/requirement/change/payment/document write is recorded, verified in the panel.
 - Phase 5 DONE: SSE `/api/scope/projects/:id/events` + `useProjectLiveUpdates` hook; the panel refreshes live.
-- Phase 6 PARTLY: drift-threshold notifications and CSV export done; PDF export and deadline alerts NOT done.
-- Phase 7 PARTLY: rate limiting, new `scope/` and `middleware/` modules, 9 backend tests. Existing `dataApi.ts` not split yet.
-- Phase 8 NOT started (logo merge, features/ folders, alias cleanup, dev pages).
+- Phase 6 DONE (except server-generated PDF): drift and deadline notifications (hourly sweep, `deadlineAlerts.ts`), CSV export, and a Print / Save-as-PDF report in the baseline panel.
+- Phase 7 PARTLY: rate limiting (incl. stricter AI limit), new `scope/` and `middleware/` modules, ~13 backend tests. Existing `dataApi.ts` not split yet.
+- AI DONE: `/ai-insights` now runs a real AI analysis per project (Gemini, server-side key `GEMINI_API_KEY` in `backend/.env`), and the change page has "Suggest with AI" for hours/days + a draft client message. Without a key the UI says AI is not enabled; nothing is faked.
+- Phase 8 PARTLY: `/design-system` hidden in production. NOT done: logo merge, `features/` folders, `@/src/*` alias cleanup, password-protected share links.
 
 ## Problem this product solves
 Scope creep and unrecorded project changes. Freelancers, agencies, student and startup teams lose time and money when clients ask for extras that are never written down, priced or approved. ScopeSync keeps one traceable record: what was agreed, what changed, who approved it, and what it affects.

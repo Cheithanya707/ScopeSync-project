@@ -101,6 +101,38 @@ export const decideSharedChange = (
     { authenticated: false },
   );
 
+export type AiSeverity = "info" | "low" | "medium" | "high" | "critical";
+
+export interface AiAnalysis {
+  summary: string;
+  healthScore: number;
+  risks: { title: string; severity: AiSeverity; detail: string; recommendation: string }[];
+  nextActions: string[];
+}
+
+export interface StoredAiAnalysis {
+  id: string;
+  createdAt: string;
+  model: string;
+  analysis: AiAnalysis;
+}
+
+export interface ImpactSuggestion {
+  extraHours: number;
+  scheduleDays: number;
+  rationale: string;
+  clientMessage: string;
+}
+
+export const getAiAnalysis = (projectId: string) =>
+  requestApi<{ configured: boolean; latest: StoredAiAnalysis | null }>(scopePath(projectId, "/ai/analysis"));
+
+export const runAiAnalysis = (projectId: string) =>
+  requestApi<StoredAiAnalysis>(scopePath(projectId, "/ai/analysis"), { method: "POST" });
+
+export const suggestChangeImpactWithAi = (projectId: string, changeId: string) =>
+  requestApi<ImpactSuggestion>(scopePath(projectId, `/changes/${encodeURIComponent(changeId)}/ai/impact`), { method: "POST" });
+
 export function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");

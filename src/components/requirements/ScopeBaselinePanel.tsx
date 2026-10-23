@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Download, Lock, ShieldAlert, ShieldCheck } from "lucide-react";
+import { Download, Lock, Printer, ShieldAlert, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useProjectLiveUpdates } from "@/hooks/useProjectLiveUpdates";
@@ -35,6 +35,35 @@ function formatMoney(value: number, currency?: string): string {
 }
 
 const when = (value: string) => new Date(value).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+
+const escapeHtml = (value: unknown) =>
+  String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char] ?? char);
+
+/** Opens a clean, print-ready report. Use the browser's Print dialog and choose "Save as PDF". */
+function printScopeReport(result: DriftResult, baselines: BaselineSummary[], audit: AuditTrail | null, currency?: string): boolean {
+  const popup = window.open("", "_blank");
+  if (!popup) return false;
+  const { drift, baseline } = result;
+  const rows = (items: { code: string; title: string }[], sign: string) => items.map((item) => `<tr><td>${sign}</td><td>${escapeHtml(item.code)}</td><td>${escapeHtml(item.title)}</td></tr>`).join("");
+  popup.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Scope report</title><style>
+    body{font:14px/1.5 system-ui,sans-serif;color:#0f172a;margin:40px}h1{font-size:22px;margin:0}h2{font-size:15px;margin:28px 0 8px}
+    table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid #e2e8f0;padding:6px 8px;text-align:left;font-size:13px}
+    .big{font-size:34px;font-weight:600}.muted{color:#64748b}
+  </style></head><body>
+    <h1>Scope drift report</h1><p class="muted">Generated ${escapeHtml(new Date().toLocaleString())} · baseline ${escapeHtml(baseline.name)} (v${baseline.version}), locked ${escapeHtml(when(baseline.createdAt))}</p>
+    <p class="big">${drift.driftPercent}% <span class="muted" style="font-size:16px">${escapeHtml(levelStyle[drift.level].label)}</span></p>
+    <table><tr><th>Added</th><th>Removed</th><th>Modified</th><th>Approved changes</th><th>Pending</th><th>Extra hours</th><th>Extra cost</th></tr>
+    <tr><td>${drift.added.length}</td><td>${drift.removed.length}</td><td>${drift.modified.length}</td><td>${drift.approvedChanges}</td><td>${drift.pendingChanges}</td><td>${drift.extraHours}</td><td>${escapeHtml(formatMoney(drift.extraCost, currency))}</td></tr></table>
+    <h2>Changes since the baseline</h2><table>${rows(drift.added, "+")}${rows(drift.removed, "−")}${rows(drift.modified, "~")}</table>
+    <h2>Baseline history</h2><table>${baselines.map((item) => `<tr><td>v${item.version}</td><td>${escapeHtml(item.name)}</td><td>${item.itemCount} requirements</td><td>${escapeHtml(when(item.createdAt))}</td></tr>`).join("")}</table>
+    <h2>Audit trail${audit ? ` (${audit.verification.valid ? "verified" : "integrity check failed"}, ${audit.total} entries)` : ""}</h2>
+    <table>${(audit?.entries ?? []).slice(0, 40).map((entry) => `<tr><td>#${entry.seq}</td><td>${escapeHtml(when(entry.at))}</td><td>${escapeHtml(entry.summary)}</td></tr>`).join("")}</table>
+  </body></html>`);
+  popup.document.close();
+  popup.focus();
+  popup.print();
+  return true;
+}
 
 export function ScopeBaselinePanel({ projectId, currency }: { projectId: string; currency?: string }) {
   const [baselines, setBaselines] = useState<BaselineSummary[]>([]);
@@ -138,6 +167,7 @@ export function ScopeBaselinePanel({ projectId, currency }: { projectId: string;
           <Input id="baseline-name" className="sm:w-48" maxLength={80} placeholder="Baseline name (optional)" value={name} onChange={(event) => setName(event.target.value)} />
           <Button onClick={() => void lock()} disabled={busy}><Lock aria-hidden="true" />Lock baseline</Button>
           <Button variant="outline" onClick={() => void exportCsv()} disabled={busy}><Download aria-hidden="true" />Export CSV</Button>
+          <Button variant="outline" disabled={!result} onClick={() => { if (result && !printScopeReport(result, baselines, audit, currency)) setError("Allow pop-ups to print or save the report as PDF."); }}><Printer aria-hidden="true" />Print / PDF</Button>
         </div>
       </div>
 

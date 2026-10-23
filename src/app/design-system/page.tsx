@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { ArrowLeft, Check, CircleDot } from "lucide-react";
 import {
   Aurora,
@@ -27,6 +28,8 @@ const tokens = [
 ];
 
 export default function DesignSystemPage() {
+  // Internal reference page: hidden in production builds.
+  if (process.env.NODE_ENV === "production") notFound();
   return (
     <main className="design-system-page">
       <Aurora className="design-system-page__aurora" />
